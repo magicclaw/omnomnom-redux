@@ -62,9 +62,13 @@ func main() {
 	})
 
 	m.Get("/", func(enc encoder.Encoder) (int, []byte) {
-		puzzle := new(Puzzle)
-		puzzle.Id = 5
-		puzzle.Phrase = "Hello there."
+		log.Println("Handling /...")
+
+		puzzle := &Puzzle{
+			Id:     5,
+			Phrase: "Hello there.",
+		}
+
 		return http.StatusOK, encoder.Must(enc.Encode(puzzle))
 	})
 
