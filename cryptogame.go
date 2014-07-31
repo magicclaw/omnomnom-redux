@@ -1,45 +1,84 @@
 package main
 
-import "github.com/go-martini/martini"
+import (
+	"github.com/go-martini/martini"
+	"github.com/martini-contrib/encoder"
+	"log"
+	"net/http"
+	"strconv"
+)
 
-// Log In
-// 1) POST /users/
-//
-// Start Game
-// 1) POST /games/
-//
-// Find Game
-// 1) GET /games/
-//
-// Join Game
-// 1) PUT /games/{id}/players/{id}
-//
-// Leave Game
-// 1) DELETE /games/{id}/players/{id}
-//
-// Log Out
-// 1) DELETE /users/{id}
-//
-// 
+type User struct {
+	id   int
+	name string
+}
+
+type Game struct {
+	id         int
+	players    []User
+	puzzles    []int
+	dictionary string
+}
+
+type Puzzle struct {
+	Id     int    `json:"id"`
+	Phrase string `json:"phrase"`
+}
+
+type Player struct {
+	id         int
+	puzzle     Puzzle
+	dictionary string
+}
+
+var puzzles []Puzzle
 
 func main() {
+	// puzzles := make([]Puzzle, 0, 100)
+	// puzzles = append(puzzles, Puzzle{
+	// 	id:     0,
+	// 	phrase: "The quick brown fox jumps high over the fence.",
+	// }, Puzzle{
+	// 	id:     1,
+	// 	phrase: "Hung and Bob are building yet another stupid hackathon project.",
+	// }, Puzzle{
+	// 	id:     2,
+	// 	phrase: "Zoolander was a funny movie.",
+	// })
+
+	//games := []Game{
+	//game := Game{
+	//	id: 0,
+	//	players: []Player,
+	//	puzzles: []Puzzle
+	//}
+
 	m := martini.Classic()
-	
-	m.Get("/", func() (int, string) {
-		return 200, "Hello World!"
+
+	m.Use(func(c martini.Context, w http.ResponseWriter, r *http.Request) {
+		pretty, _ := strconv.ParseBool(r.FormValue("pretty"))
+		c.MapTo(encoder.JsonEncoder{PrettyPrint: pretty}, (*encoder.Encoder)(nil))
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	})
-	
+
+	m.Get("/", func(enc encoder.Encoder) (int, []byte) {
+		puzzle := new(Puzzle)
+		puzzle.Id = 5
+		puzzle.Phrase = "Hello there."
+		return http.StatusOK, encoder.Must(enc.Encode(puzzle))
+	})
+
 	m.Group("/games", func(r martini.Router) {
 		r.Post("/", NewGame)
 		r.Get("/", ListGames)
 		r.Get("/:gameId", GetGame)
 	})
-	
+
 	m.Group("/games/:gameId/puzzles", func(r martini.Router) {
 		r.Get("/", ListPuzzlesInGame)
 		r.Get("/:puzzleId", GetPuzzleInGame)
 	})
-	
+
 	m.Group("/games/:gameId/players", func(r martini.Router) {
 		r.Get("/", ListPlayers)
 		r.Get("/:playerId", GetPlayer)
@@ -50,10 +89,11 @@ func main() {
 	m.Group("/users", func(r martini.Router) {
 		r.Post("/", NewUser)
 		r.Get("/", ListUsers)
-		r.Put("/", UpdateUser)
-		r.Delete("/", DeleteUser)
+		r.Get("/:userId", GetUser)
+		r.Put("/:userId", UpdateUser)
+		r.Delete("/:userId", DeleteUser)
 	})
-	
+
 	m.Run()
 }
 
@@ -74,7 +114,7 @@ func ListPuzzlesInGame() (int, string) {
 }
 
 func GetPuzzleInGame() (int, string) {
-	return 200, "Game Puzzle Requested"
+	return 200, "Puzzle in Game Requested"
 }
 
 func ListPlayers() (int, string) {
